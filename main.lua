@@ -1,9 +1,8 @@
--- ══════════════════════════════════════════════════════════════
--- Anime Astral Simulator — Auto Farm All-in-One
+-- ═══════════════════════════════════════════════════════════════════
+-- Anime Astral Simulator — Full Auto Farm (Config-Driven)
 -- Author: BluezyGPT for BZMEMBER
--- Features: Auto Farm Mob, Game Mode, Loadout, Shop,
---           Map Upgrade, Pet Upgrade, Webhook, Anti AFK, Log
--- ══════════════════════════════════════════════════════════════
+-- Reads JSON config, supports ALL features from newbieIVYAstral.json
+-- ═══════════════════════════════════════════════════════════════════
 
 -- ── Services ──
 local Players = game:GetService("Players")
@@ -12,116 +11,428 @@ local UserInputService = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local TeleportService = game:GetService("TeleportService")
 
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+if not LocalPlayer then return end
+
+local function GetChar()
+    return LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+end
+
+local Character = GetChar()
 local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
 local Humanoid = Character:WaitForChild("Humanoid")
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- ── Configuration ──
+-- ── Default Config (mirrors newbieIVYAstral.json) ──
 local Config = {
-    AutoFarm = true,
-    AutoGameMode = true,
-    AutoLoadout = true,
-    AutoShop = true,
-    AutoMapUpgrade = true,
-    AutoPetUpgrade = true,
-    AntiAFK = true,
-    FarmRange = 50,
-    WebhookURL = "",  -- ใส่ Discord Webhook URL ของมึงตรงนี้
-    LogKills = true,
-    LogCoins = true,
-    LogUpgrades = true,
-    -- Shop settings
-    BuySword = true,
-    BuyPet = true,
-    BuyEgg = true,
-    -- Map Upgrade settings
-    UpgradeDamage = true,
-    UpgradeSpeed = true,
-    UpgradeLuck = true,
-    -- Pet Upgrade settings
-    UpgradePetLevel = true,
-    UpgradePetSkill = true,
+    -- Main Farming
+    autoFarmMobToggle = false,
+    autoFarmMob = "Nearest",
+    autoFarmRaidToggle = false,
+    autoFarmRaidTarget = "Center",
+    autoFarmTrialToggle = false,
+    autoFarmTrialTarget = "Center",
+    autoFarmDefenseToggle = false,
+    autoFarmDefenseTarget = "Lowest HP",
+    autoFarmGateToggle = false,
+    autoFarmGateTarget = "Nearest",
+    autoFarmTowerToggle = false,
+    autoFarmDungeonToggle = false,
+    autoFarmBossRushToggle = false,
+
+    -- Auto Join
+    autoJoinRaidToggle = false,
+    autoJoinTrialToggle = false,
+    autoJoinDefenseToggle = false,
+    autoJoinDungeonToggle = false,
+    autoJoinTowerToggle = false,
+    autoJoinBossRushToggle = false,
+    autoJoinOpenDefenseToggle = false,
+    autoJoinOpenRaidsToggle = false,
+
+    -- Auto Leave
+    autoLeaveToggle = true,
+    raidLeaveFloor_World0 = "51",
+    raidLeaveFloor_World1 = "101",
+    raidLeaveFloor_World1Aldedo = "101",
+    raidLeaveFloor_World6 = "31",
+    raidLeaveFloor_World7 = "51",
+    raidLeaveFloor_World10 = "61",
+    raidLeaveFloor_World12 = "101",
+    trialLeaveRoom_Easy = "",
+    trialLeaveRoom_Medium = "",
+    trialLeaveRoom_Hard = "46",
+    defenseLeaveFloor_World4 = "101",
+    defenseLeaveFloor_World8 = "101",
+    defenseLeaveFloor_World13 = "101",
+    gateLeaveWave_World5_A = "51",
+    gateLeaveWave_World5_B = "51",
+    gateLeaveWave_World5_C = "51",
+    gateLeaveWave_World5_D = "51",
+    gateLeaveWave_World5_E = "51",
+    towerLeaveFloor_World14 = "51",
+
+    -- Auto Upgrade
+    autoUpgradeToggle_World0 = false,
+    autoUpgradeToggle_World3 = false,
+    autoUpgradeToggle_World6 = false,
+    autoUpgradeToggle_World9 = false,
+    autoUpgradeToggle_World10 = false,
+    autoUpgradeToggle_World13 = false,
+    autoUpgradeSelect_World0 = "",
+    autoUpgradeSelect_World3 = "",
+    autoUpgradeSelect_World6 = "",
+    autoUpgradeSelect_World9 = "",
+    autoUpgradeSelect_World10 = "",
+    autoUpgradeSelect_World13 = "",
+
+    -- Auto Loadout
+    autoEquipLoadoutToggle = false,
+    autoEquipLoadout_Raid = "",
+    autoEquipLoadout_Trial_Easy = "",
+    autoEquipLoadout_Trial_Medium = "",
+    autoEquipLoadout_Trial_Hard = "",
+    autoEquipLoadout_Defense = "",
+    autoEquipLoadout_Dungeon_World9Dungeon = "",
+    autoEquipLoadout_Gate_A = "",
+    autoEquipLoadout_Gate_B = "",
+    autoEquipLoadout_Gate_C = "",
+    autoEquipLoadout_Gate_D = "",
+    autoEquipLoadout_Gate_E = "",
+    autoEquipLoadout_Gate_S = "",
+    autoEquipLoadout_Tower = "",
+    autoEquipLoadout_BossRush = "",
+    autoEquipLoadout_Star = "",
+    autoEquipLoadout_Relic = "",
+    autoEquipLoadout_Promotion = "",
+    autoEquipLoadout_MobQuest = "",
+    autoEquipLoadout_GlobalQuest = "",
+
+    -- Auto Skill Tree
+    autoSkillTreeToggle = false,
+    autoSkillTreeToggle_CursedTree = true,
+    autoSkillTreePrio_LevelingTree_1 = "",
+    autoSkillTreePrio_LevelingTree_2 = "",
+    autoSkillTreePrio_LevelingTree_3 = "",
+    autoSkillTreePrio_LevelingTree_4 = "",
+    autoSkillTreePrio_LevelingTree_5 = "",
+    autoSkillTreePrio_LevelingTree_6 = "",
+    autoSkillTreePrio_CursedTree_1 = "Power",
+    autoSkillTreePrio_CursedTree_2 = "Damage",
+    autoSkillTreePrio_CursedTree_3 = "Drop",
+    autoSkillTreePrio_CursedTree_4 = "Yen",
+    autoSkillTreePrio_CursedTree_5 = "Luck",
+    autoSkillTreePrio_CursedTree_6 = "XP",
+
+    -- Auto Combat
+    autoSwordToggle = false,
+    autoSwordPassiveToggle = false,
+    autoSwordPassiveSword = "",
+    autoSwordPassiveStopAt = "",
+    autoSwordBanners = "",
+    autoHakiToggle = false,
+    autoHakiSelect = "",
+    autoPassivesToggle = false,
+    autoPassivesSelect = "",
+    autoPetPassiveToggle = false,
+    autoPetPassivePets = {"⭐Demon Rimuru - 1.73M", "Raphael - 1.60M"},
+    autoPetPassiveStopRarity = "Divine",
+    autoTitanToggle = false,
+    autoTitanPassiveToggle = false,
+    autoTitanPassiveSelect = "",
+    titanPassiveStopAt = "",
+    titanStopSelect = "",
+    autoPrimordialToggle = false,
+    primordialStopSelect = "",
+
+    -- Auto Quest
+    autoQuestToggle = false,
+    autoQuestBuyTravelToggle = true,
+    autoSideQuestToggle = false,
+    autoDoQuestToggle = false,
+
+    -- Auto Gacha/Shop
+    autoGachaToggle = false,
+    autoGachaBanners = "",
+    gachaRollAfterMaxToggle = false,
+    autoMerchantToggle = false,
+    autoMerchant_Merchant = "",
+    autoMerchant_World7 = "",
+    autoMerchant_World8 = "",
+    autoMerchant_World12 = "",
+    autoDefenseShopToggle = false,
+    autoDefenseShopSelect = "",
+    autoTrialShopToggle = false,
+    autoTrialShopSelect = "",
+
+    -- Auto Systems
+    autoRelicToggle = false,
+    autoRelicSelect = "",
+    autoRelicUpgradeToggle = false,
+    autoRelicUpgradeSelect = "",
+    autoRelicCoinToggle = false,
+    autoGateToggle = false,
+    autoGateSelect = "Gate",
+    autoGateRankSelect = "A",
+    autoStarToggle = false,
+    autoStarMap = "",
+    autoStarOpenAnywhere = false,
+    towerSelect = "Tower",
+    autoDungeonSelect = {"Fire City Dungeon"},
+    autoDungeonTarget = "Nearest",
+    autoTrialSelect = {"Time Trial Hard", "Time Trial Easy", "Time Trial Medium"},
+    autoBossRushSelect = "Cursed Rush",
+    autoBossRushLeaveWave_CursedRush_V1 = "300",
+    autoBossRushLeaveWave_CursedRush_V2 = "200",
+    autoRankUpToggle = false,
+    autoPromoteToggle = false,
+    autoDoPromotionToggle = false,
+    autoEvolutionToggle = false,
+    autoEvolutionSelect = {"Monster Cell Absorb"},
+    autoGrimoireToggle = false,
+    autoGrimoireSlots = "",
+    autoAriseToggle = false,
+    autoConstellationToggle = false,
+    autoProfessionsToggle = false,
+    autoProfessionsSelect = {"Power", "Damage"},
+    autoTitleToggle = false,
+    autoTitleSelect = "The Absolute  (World 13)",
+    autoGlobalQuestToggle = false,
+    autoCollectFingerToggle = false,
+    autoChest_DailyToggle = false,
+    autoChest_GroupToggle = false,
+    autoRenameToggle = false,
+    autoRenameName = "",
+    autoRenamePetSelect = "",
+    autoUsePotionToggle = false,
+    autoUsePotionSelect = "",
+    autoExchange_Shards_toggle = false,
+    autoExchange_Token_toggle = false,
+    autoExchange_Exchange_toggle = false,
+    autoExchange_Shards_select = "",
+    autoExchange_Token_select = "",
+    autoExchange_Exchange_select = "",
+    autoCommandmentToggle = false,
+    autoHopCommandmentToggle = false,
+    autoCrowToggle = false,
+    autoHopCrowToggle = false,
+    autoBallToggle = false,
+    autoHopBallToggle = false,
+    equipBestAvatarToggle = false,
+    autoExecuteToggle = false,
+
+    -- Auto Unpause
+    autoUnpause_Raid = "",
+    autoUnpause_Trial_Easy = "",
+    autoUnpause_Trial_Medium = "",
+    autoUnpause_Trial_Hard = "",
+    autoUnpause_Defense = "",
+    autoUnpause_Gate_A = "",
+    autoUnpause_Gate_B = "",
+    autoUnpause_Gate_C = "",
+    autoUnpause_Gate_D = "",
+    autoUnpause_Gate_E = "",
+    autoUnpause_Gate_S = "",
+    autoUnpause_Dungeon_World9Dungeon = "",
+    autoUnpause_Tower = "",
+    autoUnpause_BossRush = "",
+    autoUnpause_Star = "",
+    autoUnpause_Relic = "",
+    autoUnpause_Promotion = "",
+    autoUnpause_MobQuest = "",
+    autoUnpause_GlobalQuest = "",
+    autoUnpauseBoostToggle = false,
+
+    -- Leave for X
+    leaveGamemodeForBallToggle = false,
+    leaveGamemodeForCommandmentToggle = false,
+    leaveGamemodeForCrowToggle = false,
+    leaveGamemodeForTrialToggle = false,
+    leaveGamemodeForGateToggle = false,
+    leaveGamemodeForTowerToggle = false,
+    leaveGamemodeForDungeonToggle = false,
+
+    -- Webhook
+    webhookURL = "",
+    webhookSendToggle = true,
+    webhookSendFor = {"Trial", "Defense", "Gate", "Rank Up", "Raid", "Dungeon", "Boss Rush"},
+    webhookPingToggle = false,
+    webhookPingID = "",
+    webhookPingFor = "",
+    webhookDisconnectToggle = true,
+
+    -- Settings
+    worldTpDelay = 2,
+    uiScaleSlider = "1.0",
+    autohideusername = false,
+    BlackscreenMode = false,
+    defenseSpeed = "3x",
 }
 
--- ── Variables ──
+-- ── Stats ──
 local Stats = {
     Kills = 0,
+    Deaths = 0,
     CoinsEarned = 0,
+    GemsEarned = 0,
     UpgradesBought = 0,
+    SessionsJoined = 0,
     SessionStart = tick(),
+    TotalPlayTime = 0,
 }
 
-local IsScriptRunning = true
-local CurrentTarget = nil
-local LastAFKMove = 0
+local IsRunning = true
+local LogHistory = {}
+local CurrentMode = "Idle"
+
+-- ── Load Config from JSON File ──
+local function LoadConfigFromFile(filePath)
+    local Success, Result = pcall(function()
+        local File = io.open(filePath, "r")
+        if File then
+            local Content = File:Read("*all")
+            File:Close()
+            local Data = HttpService:JSONDecode(Content)
+            if Data and Data.objects then
+                for _, Obj in ipairs(Data.objects) do
+                    local Flag = Obj.flag
+                    if Config[Flag] ~= nil then
+                        if Obj.type == "Toggle" then
+                            Config[Flag] = Obj.state
+                        elseif Obj.type == "Input" then
+                            Config[Flag] = Obj.text
+                        elseif Obj.type == "Dropdown" then
+                            Config[Flag] = Obj.value or Obj.state
+                        elseif Obj.type == "Slider" then
+                            Config[Flag] = Obj.value
+                        end
+                    end
+                end
+                Log("✅ Config loaded from: " .. filePath)
+                return true
+            end
+        end
+        return false
+    end)
+    if not Success then
+        Log("⚠ Config load failed: " .. tostring(Result))
+    end
+    return Success
+end
+
+local function SaveConfigToFile(filePath)
+    pcall(function()
+        local Objects = {}
+        for Flag, Value in pairs(Config) do
+            local Obj = {flag = Flag}
+            if type(Value) == "boolean" then
+                obj.type = "Toggle"
+                obj.state = Value
+            elseif type(Value) == "string" then
+                obj.type = "Input"
+                obj.text = Value
+            elseif type(Value) == "table" then
+                obj.type = "Dropdown"
+                obj.value = Value
+            elseif type(Value) == "number" then
+                obj.type = "Slider"
+                obj.value = Value
+            end
+            table.insert(Objects, obj)
+        end
+        local File = io.open(filePath, "w")
+        if File then
+            File:Write(HttpService:JSONEncode({objects = Objects}))
+            File:Close()
+            Log("💾 Config saved to: " .. filePath)
+        end
+    end)
+end
 
 -- ── Utility Functions ──
 local function Log(Message)
     local Time = os.date("[%H:%M:%S]")
-    print(Time .. " " .. Message)
-    if Config.LogKills or Config.LogCoins or Config.LogUpgrades then
-        -- Store for webhook
-        if _LogHistory == nil then _LogHistory = {} end
-        table.insert(_LogHistory, Time .. " " .. Message)
-        if #_LogHistory > 50 then table.remove(_LogHistory, 1) end
-    end
+    local Full = Time .. " " .. Message
+    print(Full)
+    table.insert(LogHistory, Full)
+    if #LogHistory > 100 then table.remove(LogHistory, 1) end
 end
 
-local function SendWebhook(Message)
-    if Config.WebhookURL == "" then return end
-    local Success, Err = pcall(function()
+local function SendWebhook(Title, Message, Color)
+    if not Config.webhookSendToggle or Config.webhookURL == "" then return end
+    pcall(function()
         local Body = HttpService:JSONEncode({
-            username = "BluezyGPT — Anime Astral Bot",
+            username = "BluezyGPT — Anime Astral",
             avatar_url = "https://bluezygpt.space/icon.png",
             embeds = {{
-                title = "🌟 Anime Astral Simulator — Auto Farm Log",
-                color = 5814783,
+                title = Title or "🌟 Anime Astral Simulator",
+                description = Message,
+                color = Color or 5814783,
                 fields = {{
-                    name = "📝 Log",
-                    value = Message,
-                    inline = false,
+                    name = "👤 Player",
+                    value = Config.autohideusername and "Hidden" or LocalPlayer.Name,
+                    inline = true,
                 }, {
                     name = "📊 Stats",
-                    value = "Kills: " .. Stats.Kills .. "\nCoins: " .. Stats.CoinsEarned .. "\nUpgrades: " .. Stats.UpgradesBought .. "\nSession: " .. math.floor(tick() - Stats.SessionStart) .. "s",
-                    inline = false,
+                    value = "Kills: " .. Stats.Kills .. "\nSession: " .. math.floor(tick() - Stats.SessionStart) .. "s",
+                    inline = true,
+                }, {
+                    name = "🎮 Mode",
+                    value = CurrentMode,
+                    inline = true,
                 }},
                 footer = { text = "BluezyGPT for BZMEMBER | absolute bluezygpt" },
                 timestamp = os.date("!%Y-%m-%dT%H:%M:%SZ"),
             }}
         })
-        request({
-            Url = Config.WebhookURL,
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = Body,
-        })
+
+        if syn and syn.request then
+            syn.request({Url = Config.webhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = Body})
+        elseif http and http.request then
+            http.request({Url = Config.webhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = Body})
+        elseif request then
+            request({Url = Config.webhookURL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = Body})
+        end
     end)
-    if not Success then
-        Log("⚠ Webhook failed: " .. tostring(Err))
-    end
 end
 
-local function GetNearestMob()
-    local Nearest = nil
-    local NearestDist = Config.FarmRange
-    for _, Obj in ipairs(workspace:GetDescendants()) do
-        if Obj:IsA("Model") then
-            local humanoid = Obj:FindFirstChildOfClass("Humanoid")
-            local root = Obj:FindFirstChild("HumanoidRootPart")
-            if humanoid and root and humanoid.Health > 0 then
-                -- Check if it's an enemy (not player)
-                local IsEnemy = true
-                for _, Tag in ipairs(humanoid:GetTags()) do
-                    if string.find(Tag, "Player") then
-                        IsEnemy = false
-                        break
-                    end
+local function FindButton(Parent, Pattern)
+    if not Parent then return nil end
+    for _, Obj in ipairs(Parent:GetDescendants()) do
+        if (Obj:IsA("TextButton") or Obj:IsA("ImageButton")) and Obj.Visible then
+            if string.find(Obj.Name:lower(), Pattern:lower()) then
+                return Obj
+            end
+        end
+    end
+    return nil
+end
+
+local function ClickButton(Button)
+    if not Button then return false end
+    pcall(function()
+        fireclickdetector(Button)
+    end)
+    return true
+end
+
+local function GetNearestEnemy()
+    local Nearest, NearestDist = nil, math.huge
+    for _, Obj in ipairs(workspace:GetChildren()) do
+        if Obj:IsA("Model") and Obj ~= Character then
+            local Root = Obj:FindFirstChild("HumanoidRootPart")
+            local Hum = Obj:FindFirstChildOfClass("Humanoid")
+            if Root and Hum and Hum.Health > 0 then
+                local IsPlayer = false
+                for _, P in ipairs(Players:GetPlayers()) do
+                    if P.Character == Obj then IsPlayer = true break end
                 end
-                if IsEnemy then
-                    local Dist = (HumanoidRootPart.Position - root.Position).Magnitude
-                    if Dist < NearestDist then
+                if not IsPlayer then
+                    local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+                    if Dist < NearestDist and Dist < 100 then
                         Nearest = Obj
                         NearestDist = Dist
                     end
@@ -132,117 +443,184 @@ local function GetNearestMob()
     return Nearest, NearestDist
 end
 
-local function MoveTo(Position)
-    pcall(function()
-        Humanoid:MoveTo(Position)
-    end)
-end
-
-local function ClickButton(ButtonName, ButtonParent)
-    pcall(function()
-        local Button
-        if ButtonParent then
-            Button = ButtonParent:FindFirstChild(ButtonName) or ButtonParent:FindFirstChildWhichIsA("TextButton")
-        else
-            -- Try common UI locations
-            for _, ScreenGui in ipairs(LocalPlayer:WaitForChild("PlayerGui"):GetChildren()) do
-                Button = ScreenGui:FindFirstChild(ButtonName, true)
-                if Button and Button:IsA("TextButton") or Button:IsA("ImageButton") then
-                    break
+local function GetLowestHPEnemy()
+    local Lowest, LowestPct = nil, 101
+    for _, Obj in ipairs(workspace:GetChildren()) do
+        if Obj:IsA("Model") and Obj ~= Character then
+            local Root = Obj:FindFirstChild("HumanoidRootPart")
+            local Hum = Obj:FindFirstChildOfClass("Humanoid")
+            if Root and Hum and Hum.Health > 0 and Hum.MaxHealth > 0 then
+                local Pct = (Hum.Health / Hum.MaxHealth) * 100
+                if Pct < LowestPct then
+                    Lowest = Obj
+                    LowestPct = Pct
                 end
             end
         end
-        if Button then
-            fireclickdetector(Button)
-            return true
-        end
-        return false
-    end)
-    return false
+    end
+    return Lowest
 end
 
--- ── Auto Farm Mob ──
-local function AutoFarmMob()
-    if not Config.AutoFarm then return end
-    local Target, Dist = GetNearestMob()
-    if Target then
-        CurrentTarget = Target
-        local Root = Target:FindFirstChild("HumanoidRootPart")
-        if Root then
-            -- Move towards mob
-            local TargetPos = Root.Position
-            if Dist > 5 then
-                MoveTo(TargetPos)
-            else
-                -- Attack
-                HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, TargetPos)
-                -- Simulate click/attack
-                local Args = { Target, Root.Position }
-                pcall(function()
-                    ReplicatedStorage:FindFirstChild("Attack") or ReplicatedStorage:FindFirstChild("Hit")
-                    -- Common attack patterns
-                    local AttackEvent = ReplicatedStorage:FindFirstChild("Attack")
-                    if AttackEvent then
-                        AttackEvent:FireServer(unpack(Args))
-                    end
-                end)
-                -- Alternative: click-based attack
-                UserInputService:MouseClick()
+local function MoveTo(Pos)
+    pcall(function()
+        Humanoid:MoveTo(Pos)
+    end)
+end
+
+local function AttackTarget(Target)
+    local Root = Target:FindFirstChild("HumanoidRootPart")
+    if not Root then return end
+    HumanoidRootPart.CFrame = CFrame.new(HumanoidRootPart.Position, Root.Position)
+    pcall(function()
+        -- Try common remotes
+        for _, Name in ipairs({"Attack", "Hit", "Damage", "DealDamage", "Combat", "Slash"}) do
+            local R = ReplicatedStorage:FindFirstChild(Name)
+            if R and R:IsA("RemoteEvent") then R:FireServer(Root) return end
+        end
+        -- Deep search
+        for _, R in ipairs(ReplicatedStorage:GetDescendants()) do
+            if R:IsA("RemoteEvent") then
+                local L = R.Name:lower()
+                if string.find(L, "attack") or string.find(L, "hit") or string.find(L, "damage") then
+                    R:FireServer(Root)
+                    return
+                end
             end
         end
-    else
-        CurrentTarget = nil
-        -- Wander to find mobs
-        if tick() - LastAFKMove > 2 then
-            MoveTo(HumanoidRootPart.Position + Vector3.new(
-                math.random(-30, 30),
-                0,
-                math.random(-30, 30)
-            ))
-            LastAFKMove = tick()
-        end
-    end
+        -- Fallback
+        UserInputService:MouseClick()
+    end)
 end
 
 -- ── Anti AFK ──
 local function AntiAFK()
-    if not Config.AntiAFK then return end
     pcall(function()
-        -- Move camera slightly
-        local Camera = workspace.CurrentCamera
-        local CurrentCFrame = Camera.CFrame
-        Camera.CFrame = CFrame.new(
-            Camera.CFrame.Position,
-            Camera.CFrame.Position + Camera.CFrame.LookVector * 0.1
-        )
-        task.wait(0.1)
-        Camera.CFrame = CurrentCFrame
-
-        -- Small character movement
-        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.new(0, 0.01, 0)
-        task.wait(0.1)
-        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.new(0, -0.01, 0)
+        local Cam = workspace.CurrentCamera
+        if Cam then
+            local Old = Cam.CFrame
+            Cam.CFrame = CFrame.new(Cam.CFrame.Position + Vector3.new(0.005, 0, 0), Cam.CFrame.LookVector)
+            task.wait(0.05)
+            Cam.CFrame = Old
+        end
+        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.new(0, 0.001, 0)
+        task.wait(0.05)
+        HumanoidRootPart.CFrame = HumanoidRootPart.CFrame * CFrame.new(0, -0.001, 0)
     end)
 end
 
--- ── Auto Game Mode ──
-local function AutoGameMode()
-    if not Config.AutoGameMode then return end
+-- ── Auto Farm Mob ──
+local function AutoFarmMob()
+    if not Config.autoFarmMobToggle then return end
+    local Target
+    if Config.autoFarmMob == "Lowest HP" then
+        Target = GetLowestHPEnemy()
+    else
+        Target, _ = GetNearestEnemy()
+    end
+    if Target then
+        local Root = Target:FindFirstChild("HumanoidRootPart")
+        if Root then
+            local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+            if Dist > 8 then
+                MoveTo(Root.Position)
+            else
+                AttackTarget(Target)
+            end
+        end
+    else
+        -- Wander
+        if math.random() < 0.02 then
+            MoveTo(HumanoidRootPart.Position + Vector3.new(math.random(-50,50), 0, math.random(-50,50)))
+        end
+    end
+end
+
+-- ── Auto Farm Raid ──
+local function AutoFarmRaid()
+    if not Config.autoFarmRaidToggle then return end
+    CurrentMode = "Farming Raid"
+    -- Similar to mob farm but target raid-specific enemies
+    local Target = GetNearestEnemy()
+    if Target then
+        local Root = Target:FindFirstChild("HumanoidRootPart")
+        if Root then
+            local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+            if Dist > 8 then MoveTo(Root.Position) else AttackTarget(Target) end
+        end
+    end
+end
+
+-- ── Auto Farm Trial ──
+local function AutoFarmTrial()
+    if not Config.autoFarmTrialToggle then return end
+    CurrentMode = "Farming Trial"
+    local Target
+    if Config.autoFarmTrialTarget == "Center" then
+        -- Move to center of map then attack
+        MoveTo(Vector3.new(0, HumanoidRootPart.Position.Y, 0))
+    end
+    Target = GetNearestEnemy()
+    if Target then
+        local Root = Target:FindFirstChild("HumanoidRootPart")
+        if Root then
+            local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+            if Dist > 8 then MoveTo(Root.Position) else AttackTarget(Target) end
+        end
+    end
+end
+
+-- ── Auto Farm Defense ──
+local function AutoFarmDefense()
+    if not Config.autoFarmDefenseToggle then return end
+    CurrentMode = "Farming Defense"
+    local Target
+    if Config.autoFarmDefenseTarget == "Lowest HP" then
+        Target = GetLowestHPEnemy()
+    else
+        Target = GetNearestEnemy()
+    end
+    if Target then
+        local Root = Target:FindFirstChild("HumanoidRootPart")
+        if Root then
+            local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+            if Dist > 10 then MoveTo(Root.Position) else AttackTarget(Target) end
+        end
+    end
+end
+
+-- ── Auto Farm Gate ──
+local function AutoFarmGate()
+    if not Config.autoFarmGateToggle then return end
+    CurrentMode = "Farming Gate"
+    local Target = GetNearestEnemy()
+    if Target then
+        local Root = Target:FindFirstChild("HumanoidRootPart")
+        if Root then
+            local Dist = (HumanoidRootPart.Position - Root.Position).Magnitude
+            if Dist > 8 then MoveTo(Root.Position) else AttackTarget(Target) end
+        end
+    end
+end
+
+-- ── Auto Leave Logic ──
+local function CheckAutoLeave()
+    if not Config.autoLeaveToggle then return end
     pcall(function()
-        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-        -- Try to find game mode buttons
-        for _, ScreenGui in ipairs(PlayerGui:GetChildren()) do
-            local GameModeFrame = ScreenGui:FindFirstChild("GameMode", true) or
-                                  ScreenGui:FindFirstChild("ModeSelect", true) or
-                                  ScreenGui:FindFirstChild("MapSelect", true)
-            if GameModeFrame then
-                for _, Btn in ipairs(GameModeFrame:GetDescendants()) do
-                    if Btn:IsA("TextButton") or Btn:IsA("ImageButton") then
-                        if Btn.Visible and Btn.Active then
-                            fireclickdetector(Btn)
-                            Log("🎮 Auto Game Mode: Clicked " .. Btn.Name)
-                            task.wait(0.5)
-                        end
+        local Gui = PlayerGui
+        -- Check for floor/wave indicators in leaderstats or UI
+        local Leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+        if Leaderstats then
+            local FloorVal = Leaderstats:FindFirstChild("Floor") or Leaderstats:FindFirstChild("Wave") or Leaderstats:FindFirstChild("Room")
+            if FloorVal and FloorVal:IsA("IntValue") then
+                local CurrentFloor = FloorVal.Value
+                local LeaveAt = tonumber(Config.raidLeaveFloor_World0) or 51
+                if CurrentFloor >= LeaveAt then
+                    Log("🚪 Auto Leave: Floor " .. CurrentFloor .. " reached limit " .. LeaveAt)
+                    SendWebhook("🚪 Auto Leave", "Left at floor " .. CurrentFloor)
+                    -- Find leave button
+                    for _, SG in ipairs(Gui:GetChildren()) do
+                        local LeaveBtn = FindButton(SG, "leave") or FindButton(SG, "exit")
+                        if LeaveBtn then ClickButton(LeaveBtn) return end
                     end
                 end
             end
@@ -250,23 +628,77 @@ local function AutoGameMode()
     end)
 end
 
--- ── Auto Loadout ──
-local function AutoLoadout()
-    if not Config.AutoLoadout then return end
+-- ── Auto Join Logic ──
+local function AutoJoinActivities()
     pcall(function()
-        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-        for _, ScreenGui in ipairs(PlayerGui:GetChildren()) do
-            local LoadoutFrame = ScreenGui:FindFirstChild("Loadout", true) or
-                                 ScreenGui:FindFirstChild("Equipment", true) or
-                                 ScreenGui:FindFirstChild("Inventory", true)
-            if LoadoutFrame then
-                for _, Item in ipairs(LoadoutFrame:GetDescendants()) do
-                    if Item:IsA("TextButton") or Item:IsA("ImageButton") then
-                        if Item.Visible and Item.Active then
-                            fireclickdetector(Item)
-                            Log("⚔️ Auto Loadout: Equipped " .. Item.Name)
-                            task.wait(0.3)
+        local Gui = PlayerGui
+        if Config.autoJoinRaidToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "join raid") or FindButton(SG, "raid join")
+                if JoinBtn then ClickButton(JoinBtn) Log("⚔️ Auto Joined Raid") task.wait(1) end
+            end
+        end
+        if Config.autoJoinTrialToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "join trial") or FindButton(SG, "trial join")
+                if JoinBtn then ClickButton(JoinBtn) Log("🏛️ Auto Joined Trial") task.wait(1) end
+            end
+        end
+        if Config.autoJoinDefenseToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "join defense") or FindButton(SG, "defense join")
+                if JoinBtn then ClickButton(JoinBtn) Log("🛡️ Auto Joined Defense") task.wait(1) end
+            end
+        end
+        if Config.autoJoinDungeonToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "join dungeon") or FindButton(SG, "dungeon join")
+                if JoinBtn then ClickButton(JoinBtn) Log("🏰 Auto Joined Dungeon") task.wait(1) end
+            end
+        end
+        if Config.autoJoinTowerToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "join tower") or FindButton(SG, "tower join")
+                if JoinBtn then ClickButton(JoinBtn) Log("🗼 Auto Joined Tower") task.wait(1) end
+            end
+        end
+        if Config.autoJoinBossRushToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local JoinBtn = FindButton(SG, "boss rush") or FindButton(SG, "join boss")
+                if JoinBtn then ClickButton(JoinBtn) Log("👹 Auto Joined Boss Rush") task.wait(1) end
+            end
+        end
+    end)
+end
+
+-- ── Auto Upgrade ──
+local function AutoUpgrade()
+    pcall(function()
+        local Gui = PlayerGui
+        local Worlds = {
+            {Flag = "autoUpgradeToggle_World0", Select = "autoUpgradeSelect_World0"},
+            {Flag = "autoUpgradeToggle_World3", Select = "autoUpgradeSelect_World3"},
+            {Flag = "autoUpgradeToggle_World6", Select = "autoUpgradeSelect_World6"},
+            {Flag = "autoUpgradeToggle_World9", Select = "autoUpgradeSelect_World9"},
+            {Flag = "autoUpgradeToggle_World10", Select = "autoUpgradeSelect_World10"},
+            {Flag = "autoUpgradeToggle_World13", Select = "autoUpgradeSelect_World13"},
+        }
+        for _, W in ipairs(Worlds) do
+            if Config[W.Flag] then
+                for _, SG in ipairs(Gui:GetChildren()) do
+                    local UpgradeBtn = FindButton(SG, "upgrade")
+                    if UpgradeBtn then
+                        ClickButton(UpgradeBtn)
+                        task.wait(0.3)
+                        -- Click specific upgrade
+                        local Select = Config[W.Select]
+                        if Select and Select ~= "" then
+                            local SpecificBtn = FindButton(SG, Select:lower())
+                            if SpecificBtn then ClickButton(SpecificBtn) end
                         end
+                        Log("⬆️ Auto Upgrade: World")
+                        Stats.UpgradesBought = Stats.UpgradesBought + 1
+                        task.wait(0.5)
                     end
                 end
             end
@@ -274,78 +706,29 @@ local function AutoLoadout()
     end)
 end
 
--- ── Auto Shop ──
-local function AutoShop()
-    if not Config.AutoShop then return end
+-- ── Auto Skill Tree ──
+local function AutoSkillTree()
+    if not Config.autoSkillTreeToggle and not Config.autoSkillTreeToggle_CursedTree then return end
     pcall(function()
-        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-        local ShopOpen = false
-
-        -- Find and open shop
-        for _, ScreenGui in ipairs(PlayerGui:GetChildren()) do
-            local ShopBtn = ScreenGui:FindFirstChild("Shop", true) or
-                           ScreenGui:FindFirstChild("Store", true)
-            if ShopBtn and (ShopBtn:IsA("TextButton") or ShopBtn:IsA("ImageButton")) then
-                fireclickdetector(ShopBtn)
-                ShopOpen = true
-                task.wait(0.5)
-                break
-            end
-        end
-
-        if ShopOpen then
-            -- Buy items
-            local ShopFrame = PlayerGui:FindFirstChildWhichIsA("ScreenGui")
-            if ShopFrame then
-                if Config.BuySword then
-                    local SwordBtn = ShopFrame:FindFirstChild("BuySword", true) or
-                                    ShopFrame:FindFirstChild("Sword", true)
-                    if SwordBtn then fireclickdetector(SwordBtn) Log("🛒 Bought Sword") end
-                end
-                if Config.BuyPet then
-                    local PetBtn = ShopFrame:FindFirstChild("BuyPet", true) or
-                                  ShopFrame:FindFirstChild("Pet", true)
-                    if PetBtn then fireclickdetector(PetBtn) Log("🛒 Bought Pet") end
-                end
-                if Config.BuyEgg then
-                    local EggBtn = ShopFrame:FindFirstChild("BuyEgg", true) or
-                                  ShopFrame:FindFirstChild("Egg", true)
-                    if EggBtn then fireclickdetector(EggBtn) Log("🛒 Bought Egg") end
-                end
-            end
-        end
-    end)
-end
-
--- ── Auto Map Upgrade ──
-local function AutoMapUpgrade()
-    if not Config.AutoMapUpgrade then return end
-    pcall(function()
-        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-        for _, ScreenGui in ipairs(PlayerGui:GetChildren()) do
-            local UpgradeFrame = ScreenGui:FindFirstChild("Upgrade", true) or
-                                ScreenGui:FindFirstChild("MapUpgrade", true) or
-                                ScreenGui:FindFirstChild("Upgrades", true)
-            if UpgradeFrame then
-                for _, Upgrade in ipairs(UpgradeFrame:GetDescendants()) do
-                    if Upgrade:IsA("TextButton") or Upgrade:IsA("ImageButton") then
-                        if Upgrade.Visible and Upgrade.Active then
-                            local Name = Upgrade.Name:lower()
-                            if Config.UpgradeDamage and string.find(Name, "damage") then
-                                fireclickdetector(Upgrade)
-                                Log("⬆️ Map Upgrade: Damage")
-                                Stats.UpgradesBought = Stats.UpgradesBought + 1
-                            elseif Config.UpgradeSpeed and string.find(Name, "speed") then
-                                fireclickdetector(Upgrade)
-                                Log("⬆️ Map Upgrade: Speed")
-                                Stats.UpgradesBought = Stats.UpgradesBought + 1
-                            elseif Config.UpgradeLuck and string.find(Name, "luck") then
-                                fireclickdetector(Upgrade)
-                                Log("⬆️ Map Upgrade: Luck")
-                                Stats.UpgradesBought = Stats.UpgradesBought + 1
-                            end
-                            task.wait(0.3)
-                        end
+        local Gui = PlayerGui
+        for _, SG in ipairs(Gui:GetChildren()) do
+            local SkillBtn = FindButton(SG, "skill") or FindButton(SG, "tree")
+            if SkillBtn then
+                ClickButton(SkillBtn)
+                task.wait(0.3)
+                -- Click priority skills
+                local Priorities = {
+                    Config.autoSkillTreePrio_CursedTree_1,
+                    Config.autoSkillTreePrio_CursedTree_2,
+                    Config.autoSkillTreePrio_CursedTree_3,
+                    Config.autoSkillTreePrio_CursedTree_4,
+                    Config.autoSkillTreePrio_CursedTree_5,
+                    Config.autoSkillTreePrio_CursedTree_6,
+                }
+                for _, Prio in ipairs(Priorities) do
+                    if Prio and Prio ~= "" then
+                        local PrioBtn = FindButton(SG, Prio:lower())
+                        if PrioBtn then ClickButton(PrioBtn) Log("🌳 Skill: " .. Prio) task.wait(0.2) end
                     end
                 end
             end
@@ -353,29 +736,22 @@ local function AutoMapUpgrade()
     end)
 end
 
--- ── Auto Pet Upgrade ──
-local function AutoPetUpgrade()
-    if not Config.AutoPetUpgrade then return end
+-- ── Auto Gacha ──
+local function AutoGacha()
+    if not Config.autoGachaToggle then return end
     pcall(function()
-        local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-        for _, ScreenGui in ipairs(PlayerGui:GetChildren()) do
-            local PetFrame = ScreenGui:FindFirstChild("Pet", true) or
-                            ScreenGui:FindFirstChild("Pets", true) or
-                            ScreenGui:FindFirstChild("PetUpgrade", true)
-            if PetFrame then
-                for _, PetBtn in ipairs(PetFrame:GetDescendants()) do
-                    if PetBtn:IsA("TextButton") or PetBtn:IsA("ImageButton") then
-                        if PetBtn.Visible and PetBtn.Active then
-                            local Name = PetBtn.Name:lower()
-                            if Config.UpgradePetLevel and string.find(Name, "level") then
-                                fireclickdetector(PetBtn)
-                                Log("🐾 Pet Upgrade: Level")
-                            elseif Config.UpgradePetSkill and string.find(Name, "skill") then
-                                fireclickdetector(PetBtn)
-                                Log("🐾 Pet Upgrade: Skill")
-                            end
-                            task.wait(0.3)
-                        end
+        local Gui = PlayerGui
+        for _, SG in ipairs(Gui:GetChildren()) do
+            local GachaBtn = FindButton(SG, "gacha") or FindButton(SG, "summon") or FindButton(SG, "roll")
+            if GachaBtn then
+                ClickButton(GachaBtn)
+                Log("🎰 Auto Gacha Roll")
+                task.wait(1)
+                if Config.gachaRollAfterMaxToggle then
+                    -- Keep rolling
+                    for i = 1, 10 do
+                        local RollBtn = FindButton(SG, "roll") or FindButton(SG, "summon")
+                        if RollBtn then ClickButton(RollBtn) task.wait(0.5) end
                     end
                 end
             end
@@ -383,8 +759,33 @@ local function AutoPetUpgrade()
     end)
 end
 
--- ── Kill Tracker (Leaderstats) ──
-local function SetupLeaderstats()
+-- ── Auto Quest ──
+local function AutoQuest()
+    if not Config.autoQuestToggle and not Config.autoSideQuestToggle and not Config.autoDoQuestToggle then return end
+    pcall(function()
+        local Gui = PlayerGui
+        if Config.autoQuestToggle or Config.autoDoQuestToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local QuestBtn = FindButton(SG, "quest") or FindButton(SG, "mission")
+                if QuestBtn then
+                    ClickButton(QuestBtn)
+                    task.wait(0.5)
+                    local ClaimBtn = FindButton(SG, "claim") or FindButton(SG, "complete")
+                    if ClaimBtn then ClickButton(ClaimBtn) Log("📜 Quest Completed") end
+                end
+            end
+        end
+        if Config.autoSideQuestToggle then
+            for _, SG in ipairs(Gui:GetChildren()) do
+                local SideBtn = FindButton(SG, "side quest") or FindButton(SG, "sidequest")
+                if SideBtn then ClickButton(SideBtn) Log("📋 Side Quest") task.wait(0.5) end
+            end
+        end
+    end)
+end
+
+-- ── Kill Tracker ──
+local function SetupTracking()
     pcall(function()
         local Leaderstats = Instance.new("Folder")
         Leaderstats.Name = "leaderstats"
@@ -400,221 +801,328 @@ local function SetupLeaderstats()
         Coins.Value = 0
         Coins.Parent = Leaderstats
 
-        -- Track kills by monitoring humanoid deaths near player
-        workspace.DescendantAdded:Connect(function(Obj)
-            if Obj:IsA("Humanoid") then
-                Obj.Died:Connect(function()
-                    local Root = Obj.Parent:FindFirstChild("HumanoidRootPart")
-                    if Root and (HumanoidRootPart.Position - Root.Position).Magnitude < Config.FarmRange then
-                        Stats.Kills = Stats.Kills + 1
-                        Kills.Value = Stats.Kills
-                        Log("💀 Kill! Total: " .. Stats.Kills)
-                        if Config.LogKills and Stats.Kills % 10 == 0 then
-                            SendWebhook("💀 Killed 10 mobs! Total: " .. Stats.Kills)
+        local Gems = Instance.new("IntValue")
+        Gems.Name = "Gems"
+        Gems.Value = 0
+        Gems.Parent = Leaderstats
+
+        local SessionTime = Instance.new("IntValue")
+        SessionTime.Name = "Session"
+        SessionTime.Value = 0
+        SessionTime.Parent = Leaderstats
+
+        workspace.ChildAdded:Connect(function(Child)
+            if Child:IsA("Model") then
+                local Root = Child:FindFirstChild("HumanoidRootPart")
+                local Hum = Child:FindFirstChildOfClass("Humanoid")
+                if Root and Hum then
+                    Hum.Died:Connect(function()
+                        if Root and (HumanoidRootPart.Position - Root.Position).Magnitude < 100 then
+                            Stats.Kills = Stats.Kills + 1
+                            Kills.Value = Stats.Kills
+                            Log("💀 Kill! Total: " .. Stats.Kills)
+                            if Stats.Kills % 50 == 0 then
+                                SendWebhook("💀 Milestone!", Stats.Kills .. " kills reached!")
+                            end
                         end
-                    end
-                end)
+                    end)
+                end
+            end
+        end)
+
+        -- Update session time
+        task.spawn(function()
+            while IsRunning do
+                SessionTime.Value = math.floor(tick() - Stats.SessionStart)
+                task.wait(1)
             end
         end)
     end)
 end
 
--- ── UI Library (Built-in) ──
+-- ── UI Library ──
 local function CreateUI()
     pcall(function()
         local ScreenGui = Instance.new("ScreenGui")
-        ScreenGui.Name = "BluezyGPT_UI"
+        ScreenGui.Name = "BluezyGPT_FullUI"
         ScreenGui.ResetOnSpawn = false
-        ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+        ScreenGui.Parent = PlayerGui
 
         -- Main Frame
         local MainFrame = Instance.new("Frame")
-        MainFrame.Name = "MainFrame"
-        MainFrame.Size = UDim2.new(0, 320, 0, 480)
+        MainFrame.Size = UDim2.new(0, 380, 0, 560)
         MainFrame.Position = UDim2.new(0, 20, 0, 20)
-        MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 35)
+        MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
         MainFrame.BorderSizePixel = 0
         MainFrame.Parent = ScreenGui
-
-        -- Corner
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 12)
-        Corner.Parent = MainFrame
+        local MC = Instance.new("UICorner")
+        MC.CornerRadius = UDim.new(0, 12)
+        MC.Parent = MainFrame
 
         -- Title
-        local Title = Instance.new("TextLabel")
-        Title.Size = UDim2.new(1, 0, 0, 40)
-        Title.Position = UDim2.new(0, 0, 0, 0)
-        Title.BackgroundColor3 = Color3.fromRGB(40, 40, 80)
-        Title.BorderSizePixel = 0
-        Title.Text = "🌟 BluezyGPT — Anime Astral"
-        Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-        Title.TextSize = 16
-        Title.Font = Enum.Font.GothamBold
-        Title.Parent = MainFrame
-        local TitleCorner = Instance.new("UICorner")
-        TitleCorner.CornerRadius = UDim.new(0, 12)
-        TitleCorner.Parent = Title
+        local TitleBar = Instance.new("Frame")
+        TitleBar.Size = UDim2.new(1, 0, 0, 38)
+        TitleBar.BackgroundColor3 = Color3.fromRGB(30, 30, 65)
+        TitleBar.BorderSizePixel = 0
+        TitleBar.Parent = MainFrame
+        local TC = Instance.new("UICorner")
+        TC.CornerRadius = UDim.new(0, 12)
+        TC.Parent = TitleBar
 
-        -- Scroll Frame
-        local Scroll = Instance.new("ScrollingFrame")
-        Scroll.Size = UDim2.new(1, -10, 1, -50)
-        Scroll.Position = UDim2.new(0, 5, 0, 45)
-        Scroll.BackgroundTransparency = 1
-        Scroll.ScrollBarThickness = 4
-        Scroll.Parent = MainFrame
+        local TitleLabel = Instance.new("TextLabel")
+        TitleLabel.Size = UDim2.new(1, 0, 1, 0)
+        TitleLabel.BackgroundTransparency = 1
+        TitleLabel.Text = "🌟 BluezyGPT — Anime Astral [FULL]"
+        TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+        TitleLabel.TextSize = 14
+        TitleLabel.Font = Enum.Font.GothamBold
+        TitleLabel.Parent = TitleBar
 
-        local Layout = Instance.new("UIListLayout")
-        Layout.Padding = UDim.new(0, 4)
-        Layout.Parent = Scroll
+        -- Close
+        local CloseBtn = Instance.new("TextButton")
+        CloseBtn.Size = UDim2.new(0, 30, 0, 30)
+        CloseBtn.Position = UDim2.new(1, -34, 0, 4)
+        CloseBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+        CloseBtn.Text = "✕"
+        CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        CloseBtn.TextSize = 14
+        CloseBtn.Font = Enum.Font.GothamBold
+        CloseBtn.Parent = TitleBar
+        local CC = Instance.new("UICorner")
+        CC.CornerRadius = UDim.new(0, 6)
+        CC.Parent = CloseBtn
+        CloseBtn.MouseButton1Click:Connect(function()
+            ScreenGui:Destroy()
+            IsRunning = false
+            Log("❌ Script stopped")
+        end)
 
-        local Padding = Instance.new("UIPadding")
-        Padding.PaddingLeft = UDim.new(0, 8)
-        Padding.PaddingRight = UDim.new(0, 8)
-        Padding.PaddingTop = UDim.new(0, 4)
-        Padding.PaddingBottom = UDim.new(0, 4)
-        Padding.Parent = Scroll
+        -- Tabs
+        local TabContainer = Instance.new("Frame")
+        TabContainer.Size = UDim2.new(1, 0, 0, 30)
+        TabContainer.Position = UDim2.new(0, 0, 0, 42)
+        TabContainer.BackgroundColor3 = Color3.fromRGB(20, 20, 45)
+        TabContainer.BorderSizePixel = 0
+        TabContainer.Parent = MainFrame
 
-        -- Toggle Button Helper
-        local function CreateToggle(Name, Default, Callback)
+        local Tabs = {"Main", "Farm", "Auto", "Config", "Info"}
+        local TabFrames = {}
+        local TabWidth = 1 / #Tabs
+
+        for i, TabName in ipairs(Tabs) do
+            local TabBtn = Instance.new("TextButton")
+            TabBtn.Size = UDim2.new(TabWidth, 0, 1, 0)
+            TabBtn.Position = UDim2.new((i-1) * TabWidth, 0, 0, 0)
+            TabBtn.BackgroundColor3 = Color3.fromRGB(25, 25, 50)
+            TabBtn.Text = TabName
+            TabBtn.TextColor3 = Color3.fromRGB(180, 180, 200)
+            TabBtn.TextSize = 11
+            TabBtn.Font = Enum.Font.GothamBold
+            TabBtn.Parent = TabContainer
+            local TBC = Instance.new("UICorner")
+            TBC.CornerRadius = UDim.new(0, 4)
+            TBC.Parent = TabBtn
+
+            -- Tab Content Frame
+            local TabFrame = Instance.new("ScrollingFrame")
+            TabFrame.Size = UDim2.new(1, -8, 1, -88)
+            TabFrame.Position = UDim2.new(0, 4, 0, 76)
+            TabFrame.BackgroundTransparency = 1
+            TabFrame.ScrollBarThickness = 4
+            TabFrame.ScrollBarImageColor3 = Color3.fromRGB(100, 100, 150)
+            TabFrame.Visible = (i == 1)
+            TabFrame.Parent = MainFrame
+            TabFrames[TabName] = TabFrame
+
+            local Layout = Instance.new("UIListLayout")
+            Layout.Padding = UDim.new(0, 3)
+            Layout.Parent = TabFrame
+            local Pad = Instance.new("UIPadding")
+            Pad.PaddingLeft = UDim.new(0, 6)
+            Pad.PaddingRight = UDim.new(0, 6)
+            Pad.PaddingTop = UDim.new(0, 4)
+            Pad.PaddingBottom = UDim.new(0, 4)
+            Pad.Parent = TabFrame
+
+            TabBtn.MouseButton1Click:Connect(function()
+                for _, TF in pairs(TabFrames) do TF.Visible = false end
+                TabFrame.Visible = true
+            end)
+        end
+
+        -- Toggle Helper
+        local function MakeToggle(Parent, Name, Default, Callback, Order)
             local Container = Instance.new("Frame")
-            Container.Size = UDim2.new(1, 0, 0, 30)
+            Container.Size = UDim2.new(1, 0, 0, 26)
             Container.BackgroundTransparency = 1
-            Container.Parent = Scroll
+            Container.LayoutOrder = Order or 0
+            Container.Parent = Parent
 
             local Label = Instance.new("TextLabel")
             Label.Size = UDim2.new(0.6, 0, 1, 0)
-            Label.Position = UDim2.new(0, 0, 0, 0)
             Label.BackgroundTransparency = 1
             Label.Text = Name
-            Label.TextColor3 = Color3.fromRGB(200, 200, 220)
-            Label.TextSize = 12
+            Label.TextColor3 = Color3.fromRGB(180, 180, 200)
+            Label.TextSize = 10
             Label.Font = Enum.Font.Gotham
             Label.TextXAlignment = Enum.TextXAlignment.Left
             Label.Parent = Container
 
             local ToggleBtn = Instance.new("TextButton")
-            ToggleBtn.Size = UDim2.new(0, 50, 0, 24)
-            ToggleBtn.Position = UDim2.new(1, -55, 0.5, -12)
-            ToggleBtn.BackgroundColor3 = Default and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+            ToggleBtn.Size = UDim2.new(0, 44, 0, 20)
+            ToggleBtn.Position = UDim2.new(1, -48, 0.5, -10)
+            ToggleBtn.BackgroundColor3 = Default and Color3.fromRGB(0, 160, 0) or Color3.fromRGB(160, 0, 0)
             ToggleBtn.Text = Default and "ON" or "OFF"
             ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            ToggleBtn.TextSize = 11
+            ToggleBtn.TextSize = 9
             ToggleBtn.Font = Enum.Font.GothamBold
             ToggleBtn.Parent = Container
-            local BtnCorner = Instance.new("UICorner")
-            BtnCorner.CornerRadius = UDim.new(0, 6)
-            BtnCorner.Parent = ToggleBtn
+            local TgC = Instance.new("UICorner")
+            TgC.CornerRadius = UDim.new(0, 5)
+            TgC.Parent = ToggleBtn
 
             ToggleBtn.MouseButton1Click:Connect(function()
                 Default = not Default
-                ToggleBtn.BackgroundColor3 = Default and Color3.fromRGB(0, 180, 0) or Color3.fromRGB(180, 0, 0)
+                ToggleBtn.BackgroundColor3 = Default and Color3.fromRGB(0, 160, 0) or Color3.fromRGB(160, 0, 0)
                 ToggleBtn.Text = Default and "ON" or "OFF"
                 if Callback then Callback(Default) end
             end)
+            return Default
         end
 
-        -- Create Toggles
-        CreateToggle("🗡️ Auto Farm Mob", Config.AutoFarm, function(v) Config.AutoFarm = v end)
-        CreateToggle("🎮 Auto Game Mode", Config.AutoGameMode, function(v) Config.AutoGameMode = v end)
-        CreateToggle("⚔️ Auto Loadout", Config.AutoLoadout, function(v) Config.AutoLoadout = v end)
-        CreateToggle("🛒 Auto Shop", Config.AutoShop, function(v) Config.AutoShop = v end)
-        CreateToggle("⬆️ Auto Map Upgrade", Config.AutoMapUpgrade, function(v) Config.AutoMapUpgrade = v end)
-        CreateToggle("🐾 Auto Pet Upgrade", Config.AutoPetUpgrade, function(v) Config.AutoPetUpgrade = v end)
-        CreateToggle("🤖 Anti AFK", Config.AntiAFK, function(v) Config.AntiAFK = v end)
+        local function MakeInput(Parent, Label, Default, Callback, Order)
+            local Container = Instance.new("Frame")
+            Container.Size = UDim2.new(1, 0, 0, 40)
+            Container.BackgroundTransparency = 1
+            Container.LayoutOrder = Order or 0
+            Container.Parent = Parent
 
-        -- Webhook Input
-        local WebhookContainer = Instance.new("Frame")
-        WebhookContainer.Size = UDim2.new(1, 0, 0, 50)
-        WebhookContainer.BackgroundTransparency = 1
-        WebhookContainer.Parent = Scroll
+            local Lbl = Instance.new("TextLabel")
+            Lbl.Size = UDim2.new(1, 0, 0, 14)
+            Lbl.BackgroundTransparency = 1
+            Lbl.Text = Label
+            Lbl.TextColor3 = Color3.fromRGB(160, 160, 180)
+            Lbl.TextSize = 9
+            Lbl.Font = Enum.Font.Gotham
+            Lbl.TextXAlignment = Enum.TextXAlignment.Left
+            Lbl.Parent = Container
 
-        local WebhookLabel = Instance.new("TextLabel")
-        WebhookLabel.Size = UDim2.new(1, 0, 0, 15)
-        WebhookLabel.BackgroundTransparency = 1
-        WebhookLabel.Text = "🪝 Discord Webhook URL:"
-        WebhookLabel.TextColor3 = Color3.fromRGB(180, 180, 200)
-        WebhookLabel.TextSize = 11
-        WebhookLabel.Font = Enum.Font.Gotham
-        WebhookLabel.TextXAlignment = Enum.TextXAlignment.Left
-        WebhookLabel.Parent = WebhookContainer
+            local Box = Instance.new("TextBox")
+            Box.Size = UDim2.new(1, 0, 0, 22)
+            Box.Position = UDim2.new(0, 0, 0, 16)
+            Box.BackgroundColor3 = Color3.fromRGB(25, 25, 45)
+            Box.PlaceholderText = Default or ""
+            Box.PlaceholderColor3 = Color3.fromRGB(80, 80, 100)
+            Box.Text = ""
+            Box.TextColor3 = Color3.fromRGB(255, 255, 255)
+            Box.TextSize = 9
+            Box.Font = Enum.Font.Gotham
+            Box.ClearTextOnFocus = false
+            Box.Parent = Container
+            local BC = Instance.new("UICorner")
+            BC.CornerRadius = UDim.new(0, 5)
+            BC.Parent = Box
 
-        local WebhookBox = Instance.new("TextBox")
-        WebhookBox.Size = UDim2.new(1, 0, 0, 25)
-        WebhookBox.Position = UDim2.new(0, 0, 0, 18)
-        WebhookBox.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-        WebhookBox.PlaceholderText = "Paste webhook URL here..."
-        WebhookBox.PlaceholderColor3 = Color3.fromRGB(100, 100, 120)
-        WebhookBox.Text = ""
-        WebhookBox.TextColor3 = Color3.fromRGB(255, 255, 255)
-        WebhookBox.TextSize = 10
-        WebhookBox.Font = Enum.Font.Gotham
-        WebhookBox.ClearTextOnFocus = false
-        WebhookBox.Parent = WebhookContainer
-        local WebhookCorner = Instance.new("UICorner")
-        WebhookCorner.CornerRadius = UDim.new(0, 6)
-        WebhookCorner.Parent = WebhookBox
+            Box.FocusLost:Connect(function(EnterPressed)
+                if EnterPressed and Callback then Callback(Box.Text) end
+            end)
+        end
 
-        WebhookBox.FocusLost:Connect(function(EnterPressed)
-            if EnterPressed then
-                Config.WebhookURL = WebhookBox.Text
-                Log("🪝 Webhook URL set!")
-                SendWebhook("✅ Script started! Webhook connected.")
-            end
-        end)
+        -- === MAIN TAB ===
+        local MainTab = TabFrames["Main"]
+        MakeToggle(MainTab, "🗡️ Auto Farm Mob", Config.autoFarmMobToggle, function(v) Config.autoFarmMobToggle = v end, 1)
+        MakeToggle(MainTab, "⚔️ Auto Join Raid", Config.autoJoinRaidToggle, function(v) Config.autoJoinRaidToggle = v end, 2)
+        MakeToggle(MainTab, "🏛️ Auto Join Trial", Config.autoJoinTrialToggle, function(v) Config.autoJoinTrialToggle = v end, 3)
+        MakeToggle(MainTab, "🛡️ Auto Join Defense", Config.autoJoinDefenseToggle, function(v) Config.autoJoinDefenseToggle = v end, 4)
+        MakeToggle(MainTab, "🏰 Auto Join Dungeon", Config.autoJoinDungeonToggle, function(v) Config.autoJoinDungeonToggle = v end, 5)
+        MakeToggle(MainTab, "🗼 Auto Join Tower", Config.autoJoinTowerToggle, function(v) Config.autoJoinTowerToggle = v end, 6)
+        MakeToggle(MainTab, "👹 Auto Join Boss Rush", Config.autoJoinBossRushToggle, function(v) Config.autoJoinBossRushToggle = v end, 7)
+        MakeToggle(MainTab, "🚪 Auto Leave", Config.autoLeaveToggle, function(v) Config.autoLeaveToggle = v end, 8)
+        MakeToggle(MainTab, "🤖 Anti AFK", true, function(v) Config.AntiAFK = v end, 9)
 
-        -- Stats Label
-        local StatsLabel = Instance.new("TextLabel")
-        StatsLabel.Size = UDim2.new(1, 0, 0, 60)
-        StatsLabel.BackgroundTransparency = 1
-        StatsLabel.Text = "📊 Stats\nKills: 0\nCoins: 0\nUpgrades: 0"
-        StatsLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
-        StatsLabel.TextSize = 11
-        StatsLabel.Font = Enum.Font.Gotham
-        StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
-        StatsLabel.TextYAlignment = Enum.TextYAlignment.Top
-        StatsLabel.Parent = Scroll
+        -- === FARM TAB ===
+        local FarmTab = TabFrames["Farm"]
+        MakeToggle(FarmTab, "🗡️ Farm Mob", Config.autoFarmMobToggle, function(v) Config.autoFarmMobToggle = v end, 1)
+        MakeToggle(FarmTab, "⚔️ Farm Raid", Config.autoFarmRaidToggle, function(v) Config.autoFarmRaidToggle = v end, 2)
+        MakeToggle(FarmTab, "🏛️ Farm Trial", Config.autoFarmTrialToggle, function(v) Config.autoFarmTrialToggle = v end, 3)
+        MakeToggle(FarmTab, "🛡️ Farm Defense", Config.autoFarmDefenseToggle, function(v) Config.autoFarmDefenseToggle = v end, 4)
+        MakeToggle(FarmTab, "🚪 Farm Gate", Config.autoFarmGateToggle, function(v) Config.autoFarmGateToggle = v end, 5)
+        MakeToggle(FarmTab, "🗼 Farm Tower", Config.autoFarmTowerToggle, function(v) Config.autoFarmTowerToggle = v end, 6)
+        MakeToggle(FarmTab, "👹 Farm Boss Rush", Config.autoFarmBossRushToggle, function(v) Config.autoFarmBossRushToggle = v end, 7)
 
-        -- Update stats display
+        -- === AUTO TAB ===
+        local AutoTab = TabFrames["Auto"]
+        MakeToggle(AutoTab, "⬆️ Auto Upgrade", Config.autoUpgradeToggle_World0 or Config.autoUpgradeToggle_World3, function(v) Config.autoUpgradeToggle_World0 = v end, 1)
+        MakeToggle(AutoTab, "🌳 Auto Skill Tree", Config.autoSkillTreeToggle, function(v) Config.autoSkillTreeToggle = v end, 2)
+        MakeToggle(AutoTab, "🌑 Cursed Tree", Config.autoSkillTreeToggle_CursedTree, function(v) Config.autoSkillTreeToggle_CursedTree = v end, 3)
+        MakeToggle(AutoTab, "🎰 Auto Gacha", Config.autoGachaToggle, function(v) Config.autoGachaToggle = v end, 4)
+        MakeToggle(AutoTab, "📜 Auto Quest", Config.autoQuestToggle, function(v) Config.autoQuestToggle = v end, 5)
+        MakeToggle(AutoTab, "🗡️ Auto Sword", Config.autoSwordToggle, function(v) Config.autoSwordToggle = v end, 6)
+        MakeToggle(AutoTab, "💪 Auto Haki", Config.autoHakiToggle, function(v) Config.autoHakiToggle = v end, 7)
+        MakeToggle(AutoTab, "🐾 Auto Pet Passive", Config.autoPetPassiveToggle, function(v) Config.autoPetPassiveToggle = v end, 8)
+        MakeToggle(AutoTab, "👊 Auto Titan", Config.autoTitanToggle, function(v) Config.autoTitanToggle = v end, 9)
+        MakeToggle(AutoTab, "💎 Auto Relic", Config.autoRelicToggle, function(v) Config.autoRelicToggle = v end, 10)
+        MakeToggle(AutoTab, "🚪 Auto Gate", Config.autoGateToggle, function(v) Config.autoGateToggle = v end, 11)
+        MakeToggle(AutoTab, "⭐ Auto Star", Config.autoStarToggle, function(v) Config.autoStarToggle = v end, 12)
+        MakeToggle(AutoTab, "🔄 Auto Evolution", Config.autoEvolutionToggle, function(v) Config.autoEvolutionToggle = v end, 13)
+        MakeToggle(AutoTab, "📖 Auto Grimoire", Config.autoGrimoireToggle, function(v) Config.autoGrimoireToggle = v end, 14)
+        MakeToggle(AutoTab, "🏪 Auto Merchant", Config.autoMerchantToggle, function(v) Config.autoMerchantToggle = v end, 15)
+
+        -- === CONFIG TAB ===
+        local ConfigTab = TabFrames["Config"]
+        MakeInput(ConfigTab, "🪝 Discord Webhook URL:", Config.webhookURL, function(v) Config.webhookURL = v Log("🪝 Webhook set!") SendWebhook("✅ Connected!", "Player: " .. LocalPlayer.Name) end, 1)
+        MakeInput(ConfigTab, "📂 Load Config (filepath):", "", function(v) if v ~= "" then LoadConfigFromFile(v) end end, 2)
+        MakeInput(ConfigTab, "💾 Save Config (filepath):", "", function(v) if v ~= "" then SaveConfigToFile(v) end end, 3)
+        MakeInput(ConfigTab, "🌍 World TP Delay (sec):", tostring(Config.worldTpDelay), function(v) Config.worldTpDelay = tonumber(v) or 2 end, 4)
+
+        -- === INFO TAB ===
+        local InfoTab = TabFrames["Info"]
+        local InfoLabel = Instance.new("TextLabel")
+        InfoLabel.Size = UDim2.new(1, 0, 1, 0)
+        InfoLabel.BackgroundTransparency = 1
+        InfoLabel.Text = "🌟 BluezyGPT — Anime Astral\n\n👤 Player: " .. LocalPlayer.Name ..
+                         "\n📊 Kills: 0\n💰 Coins: 0\n⬆️ Upgrades: 0\n⏱️ Session: 0s\n\n" ..
+                         "absolute bluezygpt to BZMEMBER"
+        InfoLabel.TextColor3 = Color3.fromRGB(150, 200, 255)
+        InfoLabel.TextSize = 10
+        InfoLabel.Font = Enum.Font.Gotham
+        InfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+        InfoLabel.TextYAlignment = Enum.TextYAlignment.Top
+        InfoLabel.Parent = InfoTab
+
         task.spawn(function()
-            while IsScriptRunning do
-                StatsLabel.Text = "📊 Stats\nKills: " .. Stats.Kills ..
-                                  "\nCoins: " .. Stats.CoinsEarned ..
-                                  "\nUpgrades: " .. Stats.UpgradesBought ..
-                                  "\nSession: " .. math.floor(tick() - Stats.SessionStart) .. "s"
+            while IsRunning do
+                pcall(function()
+                    InfoLabel.Text = "🌟 BluezyGPT — Anime Astral\n\n👤 Player: " ..
+                                     (Config.autohideusername and "Hidden" or LocalPlayer.Name) ..
+                                     "\n📊 Kills: " .. Stats.Kills ..
+                                     "\n💰 Coins: " .. Stats.CoinsEarned ..
+                                     "\n⬆️ Upgrades: " .. Stats.UpgradesBought ..
+                                     "\n⏱️ Session: " .. math.floor(tick() - Stats.SessionStart) .. "s" ..
+                                     "\n🎮 Mode: " .. CurrentMode ..
+                                     "\n\nabsolute bluezygpt to BZMEMBER"
+                end)
                 task.wait(1)
             end
         end)
 
-        -- Drag functionality
-        local Dragging = false
-        local DragInput, MousePos, FramePos
-        Title.InputBegan:Connect(function(Input)
+        -- Drag
+        local Dragging, DragStart, StartPos = false, nil, nil
+        TitleBar.InputBegan:Connect(function(Input)
             if Input.UserInputType == Enum.UserInputType.MouseButton1 then
                 Dragging = true
-                MousePos = Input.Position
-                FramePos = MainFrame.Position
-                Input.Changed:Connect(function()
-                    if Input.UserInputState == Enum.UserInputState.End then
-                        Dragging = false
-                    end
-                end)
+                DragStart = Input.Position
+                StartPos = MainFrame.Position
             end
         end)
-        Title.InputChanged:Connect(function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseMovement then
-                DragInput = Input
-            end
+        TitleBar.InputEnded:Connect(function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
         end)
         UserInputService.InputChanged:Connect(function(Input)
-            if Input == DragInput and Dragging then
-                local Delta = Input.Position - MousePos
-                MainFrame.Position = UDim2.new(
-                    FramePos.X.Scale,
-                    FramePos.X.Offset + Delta.X,
-                    FramePos.Y.Scale,
-                    FramePos.Y.Offset + Delta.Y
-                )
+            if Dragging and Input.UserInputType == Enum.UserInputType.MouseMovement then
+                local Delta = Input.Position - DragStart
+                MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
             end
         end)
     end)
@@ -622,85 +1130,94 @@ end
 
 -- ── Main Loop ──
 local function MainLoop()
-    local GameModeTimer = 0
-    local LoadoutTimer = 0
-    local ShopTimer = 0
-    local MapUpgradeTimer = 0
-    local PetUpgradeTimer = 0
+    local JoinTimer, UpgradeTimer, SkillTimer, GachaTimer, QuestTimer = 0, 0, 0, 0, 0
     local AFKTimer = 0
 
-    while IsScriptRunning do
-        local DeltaTime = task.wait(0.1)
+    while IsRunning do
+        local dt = task.wait(0.1)
 
-        -- Auto Farm (every frame)
-        AutoFarmMob()
+        -- Auto Farm (priority based on what's enabled)
+        if Config.autoFarmMobToggle then
+            CurrentMode = "Farming Mob"
+            AutoFarmMob()
+        elseif Config.autoFarmRaidToggle then
+            AutoFarmRaid()
+        elseif Config.autoFarmTrialToggle then
+            AutoFarmTrial()
+        elseif Config.autoFarmDefenseToggle then
+            AutoFarmDefense()
+        elseif Config.autoFarmGateToggle then
+            AutoFarmGate()
+        end
 
-        -- Anti AFK (every 3s)
-        AFKTimer = AFKTimer + DeltaTime
+        -- Anti AFK
+        AFKTimer = AFKTimer + dt
         if AFKTimer >= 3 then
             AntiAFK()
             AFKTimer = 0
         end
 
-        -- Auto Game Mode (every 15s)
-        GameModeTimer = GameModeTimer + DeltaTime
-        if GameModeTimer >= 15 and Config.AutoGameMode then
-            AutoGameMode()
-            GameModeTimer = 0
+        -- Auto Join
+        JoinTimer = JoinTimer + dt
+        if JoinTimer >= 10 then
+            AutoJoinActivities()
+            JoinTimer = 0
         end
 
-        -- Auto Loadout (every 20s)
-        LoadoutTimer = LoadoutTimer + DeltaTime
-        if LoadoutTimer >= 20 and Config.AutoLoadout then
-            AutoLoadout()
-            LoadoutTimer = 0
+        -- Auto Leave Check
+        CheckAutoLeave()
+
+        -- Auto Upgrade
+        UpgradeTimer = UpgradeTimer + dt
+        if UpgradeTimer >= 20 then
+            AutoUpgrade()
+            UpgradeTimer = 0
         end
 
-        -- Auto Shop (every 30s)
-        ShopTimer = ShopTimer + DeltaTime
-        if ShopTimer >= 30 and Config.AutoShop then
-            AutoShop()
-            ShopTimer = 0
+        -- Auto Skill Tree
+        SkillTimer = SkillTimer + dt
+        if SkillTimer >= 30 then
+            AutoSkillTree()
+            SkillTimer = 0
         end
 
-        -- Auto Map Upgrade (every 25s)
-        MapUpgradeTimer = MapUpgradeTimer + DeltaTime
-        if MapUpgradeTimer >= 25 and Config.AutoMapUpgrade then
-            AutoMapUpgrade()
-            MapUpgradeTimer = 0
+        -- Auto Gacha
+        GachaTimer = GachaTimer + dt
+        if GachaTimer >= 60 then
+            AutoGacha()
+            GachaTimer = 0
         end
 
-        -- Auto Pet Upgrade (every 25s)
-        PetUpgradeTimer = PetUpgradeTimer + DeltaTime
-        if PetUpgradeTimer >= 25 and Config.AutoPetUpgrade then
-            AutoPetUpgrade()
-            PetUpgradeTimer = 0
+        -- Auto Quest
+        QuestTimer = QuestTimer + dt
+        if QuestTimer >= 45 then
+            AutoQuest()
+            QuestTimer = 0
         end
     end
 end
 
--- ── Initialization ──
+-- ── Init ──
 local function Init()
     pcall(function()
-        Log("🌟 BluezyGPT — Anime Astral Simulator Script Loaded")
+        Log("🌟 BluezyGPT — Anime Astral [FULL CONFIG] Loaded")
         Log("👤 Player: " .. LocalPlayer.Name)
-        Log("⚙️ Features: Auto Farm, Game Mode, Loadout, Shop, Map Upgrade, Pet Upgrade, Anti AFK, Webhook")
+        Log("📋 Features: All-in-One — Farm, Join, Leave, Upgrade, Skill, Gacha, Quest, Webhook")
 
-        SetupLeaderstats()
+        SetupTracking()
         CreateUI()
 
-        Log("✅ UI Created — Look for the panel on your screen")
-        Log("💡 Tip: Set your Discord Webhook URL in the panel to get logs")
+        Log("✅ UI Ready — 5 tabs: Main, Farm, Auto, Config, Info")
+        Log("💡 Tip: Paste config file path in Config tab to load settings")
 
-        -- Start main loop
         task.spawn(MainLoop)
 
-        -- Welcome webhook
         task.wait(2)
-        SendWebhook("🌟 **BluezyGPT Script Started!**\n" ..
-                    "👤 Player: " .. LocalPlayer.Name .. "\n" ..
-                    "🎮 Game: Anime Astral Simulator\n" ..
-                    "⏰ Time: " .. os.date("%H:%M:%S"))
+        SendWebhook("🌟 **Script Started!**",
+                    "Player: " .. LocalPlayer.Name ..
+                    "\nGame: Anime Astral Simulator" ..
+                    "\nTime: " .. os.date("%H:%M:%S"),
+                    5814783)
     end)
 end
 
